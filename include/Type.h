@@ -41,6 +41,8 @@ enum ProtocolType : uint8_t {
     A2B_OFF_STORE = 35,
     A2B_ON = 36,
     A2B_ON_PREPARE = 37,
+    B2A_OFF = 38,
+    B2A_ON = 39,
 };
 
 #endif

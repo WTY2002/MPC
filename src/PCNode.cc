@@ -4,6 +4,8 @@ Node::Node(const uint8_t id, const uint32_t share_count) : id_(id) {
     std::vector<uint8_t> key(16, 1);
     SetKey(key);
     InitializeMaps(share_count);
+    GenerateAllConditions();
+    GenerateConditionMap();
 }
 
 void Node::SetKey(const std::vector<uint8_t> &key) {
@@ -98,4 +100,30 @@ void Node::PrintShares(const uint32_t key) {
                 fmt::join(beta_share.GetFullAlpha(), ", "));
 
     SPDLOG_INFO("Key {}: Additive form: {}", key, fmt::join(additive_share, ", "));
+}
+
+void Node::GenerateAllConditions() {
+    conditions_.reserve(20);
+    for (uint8_t i = 1; i <= 3; ++i) {
+        for (uint8_t j = i + 1; j <= 4; ++j) {
+            for (uint8_t k = j + 1; k <= 5; ++k) {
+                std::array<uint8_t, 2> remaining{};
+                int idx = 0;
+                for (uint8_t n = 1; n <= 5; ++n) {
+                    if (n != i && n != j && n != k) {
+                        remaining[idx++] = n;
+                    }
+                }
+                conditions_.push_back({{i, j, k, remaining[0], remaining[1]}});
+                conditions_.push_back({{i, j, k, remaining[1], remaining[0]}});
+            }
+        }
+    }
+}
+
+void Node::GenerateConditionMap() {
+    for (size_t index = 0; index < conditions_.size(); ++index) {
+        const auto &cond = conditions_[index];
+        condition_map_[cond.node_idx[3]].emplace_back(index, cond.node_idx[4]);
+    }
 }

@@ -1,5 +1,3 @@
-#include <future>
-#include <iostream>
 #include <numeric>
 
 #include "MulProtocol.h"
@@ -85,8 +83,7 @@ void MulOffProtocol::HandleImpl(const std::vector<uint8_t>& data, Node& node,
 }
 
 void MulOffJointSharingPrepareProtocol::Handle(Node& node, bool is_bit_mul) {
-    const auto& conditions = GetConditions();
-
+    const auto& conditions = node.GetConditions();
     for (std::size_t condition_id = 0; condition_id < conditions.size(); ++condition_id) {
         const auto& condition = conditions[condition_id];
 
@@ -111,58 +108,11 @@ void MulOffJointSharingPrepareProtocol::Handle(Node& node, bool is_bit_mul) {
     }
 }
 
-void MulOffJointSharingPrepareProtocol::PrintConditions() {
-    const auto& conditions = GetConditions();
-    for (size_t i = 0; i < conditions.size(); ++i) {
-        const auto& [node_idx] = conditions[i];
-        printf("Condition %2zu: [%u %u %u | %u %u]\n", i, node_idx[0], node_idx[1], node_idx[2],
-               node_idx[3], node_idx[4]);
-    }
-}
-
-const std::vector<ShareCondition>& MulOffJointSharingPrepareProtocol::GetConditions() {
-    static const auto conditions = GenerateAllConditions();
-    return conditions;
-}
-
-std::vector<ShareCondition> MulOffJointSharingPrepareProtocol::GenerateAllConditions() {
-    std::vector<ShareCondition> conditions;
-    conditions.reserve(20);
-
-    for (uint8_t i = 1; i <= 3; ++i) {
-        for (uint8_t j = i + 1; j <= 4; ++j) {
-            for (uint8_t k = j + 1; k <= 5; ++k) {
-                std::array<uint8_t, 2> remaining{};
-                int idx = 0;
-                for (uint8_t n = 1; n <= 5; ++n) {
-                    if (n != i && n != j && n != k) {
-                        remaining[idx++] = n;
-                    }
-                }
-                conditions.push_back({{i, j, k, remaining[0], remaining[1]}});
-                conditions.push_back({{i, j, k, remaining[1], remaining[0]}});
-            }
-        }
-    }
-    return conditions;
-}
-
-std::map<uint8_t, std::vector<std::pair<uint8_t, uint8_t>>>
-MulOffJointSharingPrepareProtocol::GenerateConditionMap(
-    const std::vector<ShareCondition>& conditions) {
-    std::map<uint8_t, std::vector<std::pair<uint8_t, uint8_t>>> condition_map;
-    for (size_t index = 0; index < conditions.size(); ++index) {
-        const auto& cond = conditions[index];
-        condition_map[cond.node_idx[3]].emplace_back(index, cond.node_idx[4]);
-    }
-    return condition_map;
-}
-
 template <typename Calculator>
 void MulJointSharingProtocol::Handle(Node& node, NetworkNode& network_node,
                                      const TaskContext& ctx) {
     const uint8_t node_id = node.ID();
-    const auto& conditions = MulOffJointSharingPrepareProtocol::GetConditions();
+    const auto& conditions = node.GetConditions();
     const Matrix& matrix = node.MatrixRef();
 
     for (uint8_t i = 0; i < static_cast<uint8_t>(conditions.size()); ++i) {
@@ -182,7 +132,7 @@ void MulJointSharingProtocol::Handle(Node& node, NetworkNode& network_node,
         }
     }
 
-    auto condition_map = MulOffJointSharingPrepareProtocol::GenerateConditionMap(conditions);
+    const auto& condition_map = node.GetConditionMap();
     auto& receive_vector = condition_map.at(node_id);
     for (const auto& [index, share_id] : receive_vector) {
         uint64_t val = network_node.Receive(ctx.task_id, ctx.operation_id + index, 3);

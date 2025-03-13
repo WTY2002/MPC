@@ -1,5 +1,6 @@
 #include <spdlog/spdlog.h>
 #include <bitset>
+#include <future>
 #include <iostream>
 #include <random>
 
@@ -109,15 +110,15 @@ int main(int argc, char* argv[]) {
     std::thread receiver(&NetworkNode::ReceiveMessages, &network_node);
     std::thread sender(&NetworkNode::SendMessages, &network_node);
 
-    std::vector<std::thread> tasks;
+    std::vector<std::future<void>> tasks;
     for (int thread = 0; thread < 1000; thread++) {
-        tasks.emplace_back(A2BTask, thread, 1, std::ref(network_node));
+        tasks.push_back(std::async(std::launch::async, A2BTask, thread, 1, std::ref(network_node)));
     }
 
     Timer timer;
     timer.start();
     for (auto& t : tasks) {
-        t.join();
+        t.wait();
     }
     timer.stop();
     std::cout << "Total time: " << timer.elapsedMicroseconds() << " us" << std::endl;

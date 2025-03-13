@@ -3,18 +3,20 @@
 
 #include "NetworkNode.h"
 
-NetworkNode::NetworkNode(int id, int io_threads)
+NetworkNode::NetworkNode(int id, int io_threads,
+                         const std::unordered_map<int, std::string>& node_addresses)
     : node_id_(id), context_(io_threads), router_(context_, ZMQ_ROUTER), stop_flag_(false) {
-    router_.bind(node_addresses[node_id_]);
+    router_.bind(node_addresses.at(node_id_));
     exit_pair_.bind("inproc://exit_" + std::to_string(node_id_));
     for (int peer_id = 1; peer_id <= 5; peer_id++) {
         if (peer_id != node_id_) {
             dealers_.emplace(std::piecewise_construct, std::forward_as_tuple(peer_id),
                              std::forward_as_tuple(context_, ZMQ_DEALER));
-            dealers_[peer_id].connect(node_addresses[peer_id]);
+            dealers_[peer_id].connect(node_addresses.at(peer_id));
         }
     }
-    std::cout << "[Node " << node_id_ << "] Listening on " << node_addresses[node_id_] << "...\n";
+    std::cout << "[Node " << node_id_ << "] Listening on " << node_addresses.at(node_id_)
+              << "...\n";
 }
 
 void NetworkNode::AddMessage(int peer_id, int task_id, int operation_id, uint64_t value) {

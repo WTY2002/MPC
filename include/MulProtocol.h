@@ -2,15 +2,10 @@
 #define MULPROTOCOL_H
 
 #include <cstdint>
-#include <map>
 #include <vector>
 
 #include "NetworkNode.h"
 #include "PCNode.h"
-
-struct ShareCondition {
-    std::array<uint8_t, 5> node_idx;  // [sender1, sender2, sender3, receiver, zero_share]
-};
 
 // Operations over a boolean ring
 struct Mod2Policy {
@@ -88,13 +83,6 @@ class MulOnProtocol {
 class MulOffJointSharingPrepareProtocol {
   public:
     static void Handle(Node &node, bool is_bit_mul = false);
-    static void PrintConditions();
-    static const std::vector<ShareCondition> &GetConditions();
-    static std::map<uint8_t, std::vector<std::pair<uint8_t, uint8_t>>> GenerateConditionMap(
-        const std::vector<ShareCondition> &conditions);
-
-  private:
-    static std::vector<ShareCondition> GenerateAllConditions();
 };
 
 class MulJointSharingProtocol {

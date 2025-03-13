@@ -38,6 +38,10 @@ class Node {
 
     void PrintShares(uint32_t key);
 
+    void GenerateAllConditions();
+
+    void GenerateConditionMap();
+
     uint64_t Alpha(const std::size_t index) const {
         return cipher_.Alpha(index);
     }
@@ -94,6 +98,14 @@ class Node {
         return val_;
     }
 
+    const std::unordered_map<uint32_t, CipherData> &GetBetaSharesMap() const {
+        return beta_shares_map_;
+    }
+
+    std::unordered_map<uint32_t, CipherData> GetBetaSharesMapCopy() const {
+        return beta_shares_map_;
+    }
+
     uint64_t &Values(const uint32_t id, bool create_if_missing = false) {
         if (create_if_missing) {
             return values_map_[id];
@@ -143,6 +155,14 @@ class Node {
                                      std::to_string(key));
         }
         return it->second.second;
+    }
+
+    const std::vector<ShareCondition> &GetConditions() {
+        return conditions_;
+    }
+
+    std::map<uint8_t, std::vector<std::pair<uint8_t, uint8_t>>> &GetConditionMap() {
+        return condition_map_;
     }
 
     uint64_t MulShares(const uint8_t index, const uint8_t condition_id) const {
@@ -197,6 +217,10 @@ class Node {
         beta_shares_map_[id] = beta_share;
     }
 
+    void ResetBetaShares() {
+        beta_shares_map_.clear();
+    }
+
     void SetAdditiveShares(const uint32_t id, const uint64_t (&shares)[5]) {
         std::copy(std::begin(shares), std::end(shares), additive_shares_map_[id]);
     }
@@ -229,6 +253,11 @@ class Node {
         truncation_wrap_ = truncation_wrap;
     }
 
+    void SkipOfflinePhase() {
+        truncation_params_[1] = {};
+        std::memset(a2b_shares_map_[1], 0, sizeof(uint64_t) * 64 * 5);
+    }
+
   private:
     uint8_t id_;
     AES_KEY aes_key_{};
@@ -247,6 +276,8 @@ class Node {
     std::unordered_map<uint8_t, std::pair<CipherData, CipherData>> truncation_params_;
     std::unordered_map<uint8_t, uint64_t[64][5]> a2b_shares_map_;
 
+    std::vector<ShareCondition> conditions_;
+    std::map<uint8_t, std::vector<std::pair<uint8_t, uint8_t>>> condition_map_;
     std::vector<std::array<uint64_t, 5>> mul_shares_ = std::vector(20, std::array<uint64_t, 5>{});
     struct CipherData alpha_xy_ {};  // alpha_x_y
 

@@ -32,8 +32,10 @@ add_library(MPC
         src/DotProductProtocol.cc
         src/TruncationProtocol.cc
         src/A2BProtocol.cc
+        src/B2AProtocol.cc
         src/ProcessTrun.cc
         src/ProcessA2B.cc
+        src/SharedMemory.cc
 )
 
 target_link_libraries(MPC
@@ -61,6 +63,7 @@ add_protocol_executable(MulNode tests/MulNode.cc)
 add_protocol_executable(DotProductNode tests/DotProductNode.cc)
 add_protocol_executable(TrunNode tests/TrunNode.cc)
 add_protocol_executable(A2BNode tests/A2BNode.cc)
+add_protocol_executable(B2ANode tests/B2ANode.cc)
 
 add_protocol_executable(FCNN benchmark/FCNN.cc)
-add_protocol_executable(FCNN_MPC benchmark/FCNN_MPC.cc)
+add_protocol_executable(FcnnNode benchmark/FcnnNode.cc)

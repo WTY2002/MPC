@@ -13,10 +13,10 @@
 #include <zmq.hpp>
 
 constexpr size_t MSG_SIZE = 100;
-constexpr int BATCH_SIZE = 100;
+constexpr int BATCH_SIZE = 50;
 constexpr int WAIT_TIME = 10;
 
-inline std::unordered_map<int, std::string> node_addresses = {
+inline static const std::unordered_map<int, std::string> default_node_addresses = {
     {1, "tcp://127.0.0.1:5551"}, {2, "tcp://127.0.0.1:5552"}, {3, "tcp://127.0.0.1:5553"},
     {4, "tcp://127.0.0.1:5554"}, {5, "tcp://127.0.0.1:5555"},
 };
@@ -34,7 +34,9 @@ struct TaskQueue {
 
 class NetworkNode {
   public:
-    NetworkNode(int id, int io_threads);
+    NetworkNode(
+        int id, int io_threads,
+        const std::unordered_map<int, std::string>& node_addresses = default_node_addresses);
 
     void AddMessage(int peer_id, int task_id, int operation_id, uint64_t value);
 

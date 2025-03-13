@@ -2,7 +2,7 @@
 #include <future>
 #include <iostream>
 
-#include "MulProtocol.h"
+#include "B2AProtocol.h"
 #include "NetworkNode.h"
 #include "PCNode.h"
 #include "RecProtocol.h"
@@ -11,50 +11,52 @@
 #include "Type.h"
 #include "Util.h"
 
-void MulTask(int task_id, int operation_id, NetworkNode &network_node) {
+void B2ATask(int task_id, int operation_id, NetworkNode &network_node) {
     TaskContext ctx = {task_id, operation_id};
-    uint32_t share_count = 3;
+    uint32_t share_count = 15;
     Node node(network_node.ID(), share_count);
 
+    uint16_t input_id = 1;
+    uint16_t start_id = 10;
+    uint16_t result_id = 2;
+
     if (node.ID() == 1) {
-        node.SetValues(1, 12345);
-        node.SetValues(2, 67890);
+        node.SetValues(1, 1);
     }
+
+    std::vector<uint8_t> share_msg = {ProtocolType::BIT_SHARE_BETA_OFF, 1, 2, 3, 4, 5, 0, 0, 0, 0};
+    writeUint32(share_msg, 6, input_id);
 
     auto share_off_proto = new SharingBetaOfflineProtocol();
-    std::vector<uint8_t> share_msg = {ProtocolType::SHARE_BETA_OFF, 1, 2, 3, 4, 5, 0, 0, 0, 0};
-    for (int i = 1; i <= share_count; i++) {
-        writeUint32(share_msg, 6, i);
-        share_off_proto->Handle(share_msg, node);
+    share_off_proto->Handle(share_msg, node);
+
+    std::vector<uint8_t> b2a_msg = {ProtocolType::B2A_OFF};
+    b2a_msg.insert(b2a_msg.end(), 6, 0);
+    std::vector<uint16_t> keys = {input_id, start_id, result_id};
+    size_t idx = 1;
+    for (auto key : keys) {
+        auto [high, low] = uint16ToBytes(key);
+        b2a_msg[idx++] = high;
+        b2a_msg[idx++] = low;
     }
 
-    share_msg[0] = ProtocolType::SHARE_BETA;
+    auto b2a_off_proto = new B2AOffProtocol();
+    b2a_off_proto->Handle(b2a_msg, node, network_node, ctx);
+
+    share_msg[0] = ProtocolType::BIT_SHARE_BETA;
     auto share_on_proto = new SharingBetaProtocol();
-    for (int i = 1; i <= 2; i++) {
-        writeUint32(share_msg, 6, i);
-        share_on_proto->Handle(share_msg, node, network_node, ctx);
-        ctx.operation_id++;
-    }
 
-    std::vector<uint8_t> mul_msg{ProtocolType::MUL_OFF};
-    mul_msg.insert(mul_msg.end(), 12, 0);
-    writeUint32(mul_msg, 1, 1);
-    writeUint32(mul_msg, 5, 2);
-    writeUint32(mul_msg, 9, 3);
+    share_on_proto->Handle(share_msg, node, network_node, ctx);
+    ctx.operation_id++;
 
-    auto mul_off_proto = new MulOffProtocol();
-    mul_off_proto->Handle(mul_msg, node, network_node, ctx);
-    ctx.operation_id += 20;
-
-    mul_msg[0] = ProtocolType::MUL_ON;
-    auto mul_on_proto = new MulOnProtocol();
+    b2a_msg[0] = ProtocolType::B2A_ON;
     for (int i = 0; i < 1000; i++) {
-        mul_on_proto->Handle(mul_msg, node, network_node, ctx);
-        ctx.operation_id += 5;
+        auto b2a_on_proto = new B2AOnProtocol();
+        b2a_on_proto->Handle(b2a_msg, node);
     }
 
     /*
-    std::vector<uint8_t> rec_msg = {ProtocolType::REC, 2, 3, 4, 5, 3};
+    std::vector<uint8_t> rec_msg = {ProtocolType::REC, 2, 3, 4, 5, 2};
     auto rec_proto = new ReconstructionProtocol();
     rec_proto->Handle(rec_msg, node, network_node, ctx);
     ctx.operation_id++;
@@ -81,7 +83,7 @@ int main(int argc, char *argv[]) {
 
     std::vector<std::future<void>> tasks;
     for (int thread = 0; thread < 1000; thread++) {
-        tasks.push_back(std::async(std::launch::async, MulTask, thread, 1, std::ref(network_node)));
+        tasks.push_back(std::async(std::launch::async, B2ATask, thread, 1, std::ref(network_node)));
     }
 
     Timer timer;
